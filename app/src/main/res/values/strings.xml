@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">ActivityTracker</string>
+<!--    Menu Panel Name-->
+    <string name="user_name">Welcome to Activity Tracker</string>
+    <string name="data_button">Data</string>
+    <string name="progress_button">Summary</string>
+    <string name="goal_button">Goal</string>
+    <string name="pet_button">Pet</string>
+</resources>
