@@ -41,6 +41,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private var thread: Thread? = null
     private var plotData = true
 
+    private var currentActivity : String? = null
+    private var isRecorded = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -109,6 +112,77 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         //disabled the right y-axis
         compoundChart.axisRight.isEnabled = false
         compoundChart.setDrawBorders(false)
+
+        if (currentActivity == null){ isRecorded = false }
+
+        startButton.setOnClickListener {
+            isRecorded = true
+            startButton.isEnabled = false
+            stopButton.isEnabled = true
+            pauseButton.isEnabled = true
+        }
+
+        stopButton.setOnClickListener {
+            isRecorded = false
+            startButton.isEnabled = true
+            stopButton.isEnabled = false
+            pauseButton.isEnabled = true
+        }
+
+        pauseButton.setOnClickListener {
+            isRecorded = false
+            startButton.isEnabled = true
+            stopButton.isEnabled = true
+            pauseButton.isEnabled = false
+        }
+
+        staticButton.setOnClickListener {
+            currentActivity = if (staticButton.isEnabled) {
+                "static"
+            } else{
+                null
+            }
+        }
+
+        walkButton.setOnClickListener {
+            currentActivity = if (walkButton.isEnabled) {
+                "walk"
+            } else{
+                null
+            }
+        }
+
+        runButton.setOnClickListener {
+            currentActivity = if (runButton.isEnabled) {
+                "run"
+            } else{
+                null
+            }
+        }
+
+        jumpButton.setOnClickListener {
+            currentActivity = if (jumpButton.isEnabled) {
+                "jump"
+            } else{
+                null
+            }
+        }
+
+        stairUpButton.setOnClickListener {
+            currentActivity = if (stairUpButton.isEnabled) {
+                "up"
+            } else{
+                null
+            }
+        }
+
+        stairDownButton.setOnClickListener {
+            currentActivity = if (stairDownButton.isEnabled) {
+                "down"
+            } else{
+                null
+            }
+        }
 
         feedMultiple()
     }
@@ -182,10 +256,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                     data.addEntry( Entry(xSet.entryCount.toFloat(), x + 5), 0)
 
                     val ySet : ILineDataSet = data.getDataSetByIndex(1)
-                    data.addEntry( Entry(ySet.entryCount.toFloat(), y + 5), 1)
+                    data.addEntry( Entry(ySet.entryCount.toFloat(), y), 1)
 
                     val zSet : ILineDataSet = data.getDataSetByIndex(2)
-                    data.addEntry( Entry(zSet.entryCount.toFloat(), z + 5), 2)
+                    data.addEntry( Entry(zSet.entryCount.toFloat(), z), 2)
                     data.notifyDataChanged()
 
                     compoundChart.notifyDataSetChanged()
