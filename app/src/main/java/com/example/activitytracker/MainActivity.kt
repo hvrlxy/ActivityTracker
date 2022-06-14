@@ -1,14 +1,18 @@
 package com.example.activitytracker
 
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.Legend
@@ -17,6 +21,9 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
+import com.google.firebase.database.*
+import java.time.Instant.*
+import java.time.format.DateTimeFormatter
 
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
@@ -44,6 +51,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private var currentActivity : String? = null
     private var isRecorded = false
 
+    private lateinit var db :FirebaseDatabase
+    private lateinit var ref : DatabaseReference
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -64,6 +74,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
         dataPanel.isEnabled = false
         dataPanel.setTextColor(Color.GREEN)
+
+        db = FirebaseDatabase.getInstance()
+        db.reference.root.child("data").setValue(null)
+        ref = db.getReference("data")
+
 
         summaryPanel.setOnClickListener {
             val intent = Intent(this@MainActivity, SummaryViewer::class.java) //
@@ -137,54 +152,51 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
 
         staticButton.setOnClickListener {
-            currentActivity = if (staticButton.isEnabled) {
-                "static"
-            } else{
-                null
-            }
+            resetActionButton()
+            currentActivity = "static"
+            staticButton.backgroundTintList = ColorStateList.valueOf(Color.GRAY)
         }
 
         walkButton.setOnClickListener {
-            currentActivity = if (walkButton.isEnabled) {
-                "walk"
-            } else{
-                null
-            }
+            resetActionButton()
+            currentActivity = "walk"
+            walkButton.backgroundTintList = ColorStateList.valueOf(Color.GRAY)
         }
 
         runButton.setOnClickListener {
-            currentActivity = if (runButton.isEnabled) {
-                "run"
-            } else{
-                null
-            }
+            resetActionButton()
+            currentActivity = "run"
+            runButton.backgroundTintList = ColorStateList.valueOf(Color.GRAY)
         }
 
         jumpButton.setOnClickListener {
-            currentActivity = if (jumpButton.isEnabled) {
-                "jump"
-            } else{
-                null
-            }
+            resetActionButton()
+            currentActivity = "jump"
+            jumpButton.backgroundTintList = ColorStateList.valueOf(Color.GRAY)
         }
 
         stairUpButton.setOnClickListener {
-            currentActivity = if (stairUpButton.isEnabled) {
-                "up"
-            } else{
-                null
-            }
+            resetActionButton()
+            currentActivity = "up"
+            stairUpButton.backgroundTintList = ColorStateList.valueOf(Color.GRAY)
         }
 
         stairDownButton.setOnClickListener {
-            currentActivity = if (stairDownButton.isEnabled) {
-                "down"
-            } else{
-                null
-            }
+            resetActionButton()
+            currentActivity = "down"
+            stairDownButton.backgroundTintList = ColorStateList.valueOf(Color.GRAY)
         }
 
         feedMultiple()
+    }
+
+    private fun resetActionButton(){
+        staticButton.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#ECEC72"))
+        walkButton.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#ECEC72"))
+        runButton.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#ECEC72"))
+        jumpButton.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#ECEC72"))
+        stairUpButton.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#ECEC72"))
+        stairDownButton.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#ECEC72"))
     }
 
     private fun feedMultiple() {
@@ -224,6 +236,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         return set
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onSensorChanged(event: SensorEvent?) {
         // retrieve the information return by the sensor listener
         if (plotData) {
@@ -234,7 +247,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 val x = event.values[0] // left right
                 val y = event.values[1] // top down side of the phone
                 val z = event.values[2] // side of the screen, positive indicate the phone face up
-
+                if (isRecorded && currentActivity != null) {
+                    val dataObject =
+                        AccelerometerData(x, y, z, currentActivity!!)
+                    addDataToFirebase(dataObject)
+                }
 
                 val data = compoundChart.data
                 if (data != null){
@@ -271,6 +288,28 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 }
             }
         }
+    }
+
+    private fun addDataToFirebase(dataObject: AccelerometerData){
+        ref.addValueEventListener(object : ValueEventListener {
+            @RequiresApi(Build.VERSION_CODES.O)
+            override fun onDataChange(snapshot: DataSnapshot) {
+                // inside the method of on Data change we are setting
+                // our object class to our database reference.
+                // data base reference will sends data to firebase.
+                val dateString = DateTimeFormatter.ISO_INSTANT.format(now()).replace('.', ',')
+                ref.child(
+                    dateString
+                ).setValue(dataObject)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // if the data is not added or it is cancelled then
+                // we are displaying a failure toast message.
+                Toast.makeText(this@MainActivity, "Fail to add data $error", Toast.LENGTH_SHORT)
+                    .show()
+            }
+        })
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
